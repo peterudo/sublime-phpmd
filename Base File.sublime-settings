@@ -1,3 +1,4 @@
 {
-    "phpmd_executable": "/opt/local/bin/phpmd"
+    "phpmd_executable": "/opt/local/bin/phpmd",
+    "phpmd_options": "codesize,unusedcode,naming,design"
 }

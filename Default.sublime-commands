@@ -1,0 +1,7 @@
+[
+    {
+        "caption": "PHPMD: Check current file",
+        "command": "phpmd",
+        "args": {"action": "phpmd"}
+    }
+]

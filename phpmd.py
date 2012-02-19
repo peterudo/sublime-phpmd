@@ -4,25 +4,36 @@ import sublime
 import sublime_plugin
 import subprocess
 import threading
+import re
 from xml.dom.minidom import parseString
 
 
-settings = sublime.load_settings('Base File.sublime-settings')
 region_key = "PHPMD"
+settings = sublime.load_settings('Base File.sublime-settings')
 phpmd_exec = settings.get("phpmd_executable", "/opt/local/bin/phpmd")
+phpmd_options = settings.get("phpmd_options", "codesize,unusedcode,naming,design")
 
 
-class PHPMDListener(sublime_plugin.EventListener):
+def is_php(view):
+    return re.search('.+\PHP.tmLanguage', view.settings().get('syntax'))
 
-    def on_post_save(self, view):
-        self.view = view
 
-        thread = PHPMessDetector(self.view.file_name())
+class PhpmdCommand(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        ''' Runs the phpmd command for the current view'''
+
+        if not is_php(self.view):
+            return None
+
+        thread = PhpmdThread(self.view.file_name())
         thread.start()
 
         self.handle_thread(thread)
 
     def handle_thread(self, thread):
+        '''Handle the running thread. Will rerun itself until the thread has completed/failed'''
+
         if thread.is_alive():
             sublime.set_timeout(lambda: self.handle_thread(thread), 100)
             return
@@ -33,6 +44,8 @@ class PHPMDListener(sublime_plugin.EventListener):
         self.parse_data(thread.result)
 
     def parse_data(self, data):
+        '''Parse the result from the thread and mark the regions containing errors'''
+
         regions = []
         xml_data = parseString(data)
         violations = xml_data.getElementsByTagName('violation')
@@ -53,17 +66,19 @@ class PHPMDListener(sublime_plugin.EventListener):
             "light_x_bright", sublime.HIDDEN)
 
 
-class PHPMessDetector(threading.Thread):
+class PhpmdThread(threading.Thread):
 
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, file_name):
+        self.file_name = file_name
         self.result = None
 
         threading.Thread.__init__(self)
 
     def run(self):
-        cmd = "%s %s xml codesize,unusedcode,naming,design" \
-            % (phpmd_exec, self.file)
+        '''Run the phpmd utility and store the result'''
+
+        cmd = "%s %s xml %s" \
+            % (phpmd_exec, self.file_name, phpmd_options)
 
         proc = subprocess.Popen([cmd], \
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -71,3 +86,12 @@ class PHPMessDetector(threading.Thread):
         if proc.stdout:
             self.result = proc.communicate()[0]
             return
+
+
+class PhpmdEventListener(sublime_plugin.EventListener):
+
+    def on_load(self, view):
+        view.run_command('phpmd')
+
+    def on_post_save(self, view):
+        view.run_command('phpmd')
