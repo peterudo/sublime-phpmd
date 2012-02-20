@@ -51,8 +51,12 @@ class PhpmdCommand(sublime_plugin.TextCommand):
         violations = xml_data.getElementsByTagName('violation')
 
         for violation in violations:
-            beginline = violation.getAttribute('beginline')
-            endline = violation.getAttribute('endline')
+            attr = violation.getAttribute
+            beginline = attr('beginline')
+            endline = attr('endline')
+
+            message = 'PHPMD error (lines %s to %s):\n  %s: %s' % (beginline, endline, attr('rule'), violation.firstChild.nodeValue.strip())
+            print message
 
             for lineno in xrange(int(beginline), int(endline) + 1):
                 line = self.view.full_line(self.view.text_point(lineno - 1, 0))
