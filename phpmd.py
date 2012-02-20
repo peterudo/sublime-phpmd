@@ -9,9 +9,11 @@ from xml.dom.minidom import parseString
 
 
 region_key = "PHPMD"
-settings = sublime.load_settings('Base File.sublime-settings')
-phpmd_exec = settings.get("phpmd_executable", "/opt/local/bin/phpmd")
-phpmd_options = settings.get("phpmd_options", "codesize,unusedcode,naming,design")
+
+settings = sublime.load_settings('phpmd.sublime-settings')
+phpmd_exec = settings.get("phpmd_executable")
+phpmd_options = settings.get("phpmd_options")
+phpmd_output_format = settings.get("phpmd_output_format")
 
 
 def is_php(view):
@@ -55,7 +57,13 @@ class PhpmdCommand(sublime_plugin.TextCommand):
             beginline = attr('beginline')
             endline = attr('endline')
 
-            message = 'PHPMD error (lines %s to %s):\n  %s: %s' % (beginline, endline, attr('rule'), violation.firstChild.nodeValue.strip())
+            message = phpmd_output_format.format(\
+                beginline=beginline,\
+                endline=endline,\
+                rule=attr('rule'),\
+                message=violation.firstChild.nodeValue.strip()\
+            )
+
             print message
 
             for lineno in xrange(int(beginline), int(endline) + 1):

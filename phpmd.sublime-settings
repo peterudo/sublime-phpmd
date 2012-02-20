@@ -1,0 +1,5 @@
+{
+    "phpmd_executable": "/opt/local/bin/phpmd",
+    "phpmd_options": "codesize,unusedcode,naming,design",
+    "phpmd_output_format": "PHPMD error (lines {beginline} to {endline}):\n  {rule}: {message}"
+}
